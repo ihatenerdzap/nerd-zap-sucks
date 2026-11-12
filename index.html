@@ -1,25 +1,52 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>HDMI Monitor</title>
+  <title>HDMI Monitor Pro</title>
   <style>
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: #fff; }
-    video { width: 100%; height: 100%; object-fit: contain; background: #000; }
-    #controls { position: fixed; top: 12px; left: 12px; z-index: 10; background: rgba(20, 20, 20, 0.9); padding: 10px 14px; border-radius: 8px; border: 1px solid #444; }
-    select, button { margin-right: 6px; padding: 6px 10px; border-radius: 4px; border: none; font-size: 14px; cursor: pointer; }
-    button { background: #1a73e8; color: #fff; font-weight: bold; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: #fff; user-select: none; }
+    video { width: 100vw; height: 100vh; object-fit: contain; background: #000; display: block; }
+    #controls { position: fixed; top: 12px; left: 12px; right: 12px; max-width: 960px; z-index: 10; background: rgba(18, 18, 18, 0.92); padding: 12px 14px; border-radius: 10px; border: 1px solid #444; box-shadow: 0 4px 16px rgba(0,0,0,0.6); }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .row:last-child { margin-bottom: 0; }
+    select, button { padding: 6px 10px; border-radius: 5px; border: none; font-size: 13px; cursor: pointer; background: #2c2c2c; color: #fff; border: 1px solid #555; }
+    button { background: #1a73e8; border-color: #1a73e8; font-weight: bold; }
     button:hover { background: #1557b0; }
-    #status { margin-top: 8px; font-size: 13px; color: #ffab40; }
+    button.secondary { background: #333; border-color: #555; }
+    button.secondary:hover { background: #444; }
+    button.muted { background: #d93025; border-color: #d93025; }
+    .slider-group { display: flex; align-items: center; gap: 6px; background: #262626; padding: 4px 10px; border-radius: 5px; border: 1px solid #444; font-size: 13px; }
+    input[type="range"] { width: 90px; cursor: pointer; }
+    #status { font-size: 12px; color: #8ab4f8; margin-left: auto; }
   </style>
 </head>
 <body>
   <div id="controls">
-    <button id="startBtn">1. Start / Load Devices</button>
-    <select id="videoSource"><option value="">Select Video...</option></select>
-    <select id="audioSource"><option value="">Select Audio...</option></select>
-    <button id="fullscreenBtn">Fullscreen</button>
-    <button id="hideBtn">Hide Menu</button>
-    <div id="status">Click "1. Start / Load Devices" to begin.</div>
+    <div class="row">
+      <button id="startBtn">1. Start / Load Devices</button>
+      <select id="videoSource" title="Video Capture Device"><option value="">Select Video...</option></select>
+      <select id="audioSource" title="Audio Capture Device"><option value="">Select Audio...</option></select>
+      <select id="resSelect" title="Resolution">
+        <option value="1080" selected>1080p (Full HD)</option>
+        <option value="720">720p (Fast / Low Lag)</option>
+        <option value="auto">Auto Resolution</option>
+      </select>
+      <select id="fpsSelect" title="Frame Rate">
+        <option value="60" selected>60 FPS</option>
+        <option value="30">30 FPS</option>
+      </select>
+    </div>
+    <div class="row">
+      <button id="muteBtn" class="secondary">🔊 Unmuted</button>
+      <div class="slider-group">
+        <span>Vol:</span>
+        <input type="range" id="volSlider" min="0" max="1" step="0.05" value="1">
+        <span id="volLabel">100%</span>
+      </div>
+      <button id="fitBtn" class="secondary">Screen: Fit (Bars)</button>
+      <button id="fullscreenBtn" class="secondary">Fullscreen (F)</button>
+      <button id="hideBtn" class="secondary">Hide Menu (H)</button>
+      <div id="status">Click "1. Start / Load Devices" to begin.</div>
+    </div>
   </div>
   <video id="video" autoplay playsinline></video>
 
@@ -27,16 +54,77 @@
     const video = document.getElementById('video');
     const videoSelect = document.getElementById('videoSource');
     const audioSelect = document.getElementById('audioSource');
+    const resSelect = document.getElementById('resSelect');
+    const fpsSelect = document.getElementById('fpsSelect');
+    const muteBtn = document.getElementById('muteBtn');
+    const volSlider = document.getElementById('volSlider');
+    const volLabel = document.getElementById('volLabel');
     const controls = document.getElementById('controls');
     const statusText = document.getElementById('status');
+    const fitBtn = document.getElementById('fitBtn');
+
+    const fitModes = [
+      { mode: 'contain', label: 'Screen: Fit (Bars)' },
+      { mode: 'cover', label: 'Screen: Zoom Crop' },
+      { mode: 'fill', label: 'Screen: Stretch Full' }
+    ];
+    let currentFit = 0;
+
+    function cycleFit() {
+      currentFit = (currentFit + 1) % fitModes.length;
+      video.style.objectFit = fitModes[currentFit].mode;
+      fitBtn.textContent = fitModes[currentFit].label;
+    }
+
+    function toggleMute() {
+      video.muted = !video.muted;
+      muteBtn.textContent = video.muted ? '🔇 Muted' : '🔊 Unmuted';
+      muteBtn.classList.toggle('muted', video.muted);
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    function toggleMenu() {
+      controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
+    }
+
+    fitBtn.onclick = cycleFit;
+    muteBtn.onclick = toggleMute;
+    document.getElementById('fullscreenBtn').onclick = toggleFullscreen;
+    document.getElementById('hideBtn').onclick = toggleMenu;
+    document.body.ondblclick = toggleMenu;
+
+    volSlider.oninput = () => {
+      video.volume = volSlider.value;
+      volLabel.textContent = Math.round(volSlider.value * 100) + '%';
+      if (video.volume > 0 && video.muted) toggleMute();
+    };
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'SELECT') return;
+      const key = e.key.toLowerCase();
+      if (key === 'f') toggleFullscreen();
+      if (key === 'h') toggleMenu();
+      if (key === 'm') toggleMute();
+      if (key === 's') cycleFit();
+    });
 
     async function loadDevices() {
-      statusText.textContent = "Requesting camera/mic permission...";
+      statusText.textContent = "Requesting permissions...";
       try {
         const tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         tempStream.getTracks().forEach(track => track.stop());
 
         const devices = await navigator.mediaDevices.enumerateDevices();
+        const savedVideo = videoSelect.value;
+        const savedAudio = audioSelect.value;
+
         videoSelect.innerHTML = '';
         audioSelect.innerHTML = '';
 
@@ -48,45 +136,53 @@
           if (device.kind === 'audioinput') audioSelect.appendChild(option);
         });
 
-        statusText.textContent = "Devices loaded. Starting stream...";
+        if (savedVideo) videoSelect.value = savedVideo;
+        if (savedAudio) audioSelect.value = savedAudio;
+
         await startStream();
       } catch (err) {
-        statusText.textContent = "Error: " + err.name + " - " + err.message;
+        statusText.textContent = "Error: " + err.message;
       }
     }
 
     async function startStream() {
       if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+      
+      const res = resSelect.value;
+      const fps = parseInt(fpsSelect.value, 10);
+      let videoConstraints = { frameRate: { ideal: fps } };
+
+      if (videoSelect.value) videoConstraints.deviceId = { exact: videoSelect.value };
+      if (res === '1080') {
+        videoConstraints.width = { ideal: 1920 };
+        videoConstraints.height = { ideal: 1080 };
+      } else if (res === '720') {
+        videoConstraints.width = { ideal: 1280 };
+        videoConstraints.height = { ideal: 720 };
+      }
+
       try {
         const constraints = {
-          video: videoSelect.value ? { deviceId: { exact: videoSelect.value }, width: { ideal: 1920 }, height: { ideal: 1080 } } : true,
+          video: videoConstraints,
           audio: audioSelect.value ? { deviceId: { exact: audioSelect.value }, echoCancellation: false, noiseSuppression: false, autoGainControl: false } : false
         };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
         await video.play();
-        statusText.textContent = "Playing! Double-click screen to hide/show menu.";
+
+        const track = stream.getVideoTracks()[0];
+        const settings = track.getSettings();
+        statusText.textContent = `Live: ${settings.width || '?'}x${settings.height || '?'} @ ${Math.round(settings.frameRate || fps)}fps`;
       } catch (err) {
-        statusText.textContent = "Stream Error: " + err.name + " - " + err.message;
+        statusText.textContent = "Stream Error: " + err.message;
       }
     }
 
     document.getElementById('startBtn').onclick = loadDevices;
     videoSelect.onchange = startStream;
     audioSelect.onchange = startStream;
-
-    document.getElementById('fullscreenBtn').onclick = () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-          statusText.textContent = "Fullscreen blocked by Chrome. Use the Fullscreen key on your keyboard instead.";
-        });
-      } else {
-        document.exitFullscreen();
-      }
-    };
-
-    document.getElementById('hideBtn').onclick = () => controls.style.display = 'none';
-    document.body.ondblclick = () => controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
+    resSelect.onchange = startStream;
+    fpsSelect.onchange = startStream;
   </script>
 </body>
 </html>
