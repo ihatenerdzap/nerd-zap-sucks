@@ -24,6 +24,34 @@
       object-fit: contain;
       background: #000;
       display: block;
+      position: relative;
+      z-index: 1;
+    }
+
+    #dvdLogo {
+      position: fixed;
+      top: 100px;
+      left: 100px;
+      z-index: 5;
+      pointer-events: none;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 26px;
+      letter-spacing: 2px;
+      color: #ff2a85;
+      border: 3px solid #ff2a85;
+      border-radius: 50%;
+      padding: 14px 28px;
+      text-align: center;
+      line-height: 1.1;
+      background: #000;
+    }
+
+    #dvdSub {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 4px;
+      margin-top: 4px;
     }
 
     #controls {
@@ -31,7 +59,7 @@
       top: 14px;
       left: 14px;
       right: 14px;
-      max-width: 1020px;
+      max-width: 1060px;
       z-index: 10;
       background: #1f0a17;
       padding: 14px 18px;
@@ -126,6 +154,11 @@
   </style>
 </head>
 <body>
+  <div id="dvdLogo">
+    NERDZAP SUCKS!
+    <span id="dvdSub">VIDEO</span>
+  </div>
+
   <div id="controls">
     <div class="header-bar">
       <div class="pink-banner">NERDZAP SUCKS!</div>
@@ -153,6 +186,7 @@
         <span id="volLabel">100%</span>
       </div>
       <button id="fitBtn">Screen: Fit (Bars)</button>
+      <button id="dvdBtn">DVD Bounce (D)</button>
       <button id="fullscreenBtn">Fullscreen (F)</button>
       <button id="hideBtn">Hide Menu (H)</button>
     </div>
@@ -171,6 +205,49 @@
     const controls = document.getElementById('controls');
     const statusText = document.getElementById('status');
     const fitBtn = document.getElementById('fitBtn');
+    const dvdLogo = document.getElementById('dvdLogo');
+
+    // DVD Bouncer Logic
+    let dvdX = 120;
+    let dvdY = 180;
+    let dvdVx = 2.5;
+    let dvdVy = 2.5;
+    const dvdColors = ['#ff2a85', '#00f5d4', '#ffbe0b', '#9d4edd', '#3a86ff', '#ff5400', '#06d6a0'];
+    let colorIndex = 0;
+
+    function changeDvdColor() {
+      colorIndex = (colorIndex + 1) % dvdColors.length;
+      const newColor = dvdColors[colorIndex];
+      dvdLogo.style.color = newColor;
+      dvdLogo.style.borderColor = newColor;
+    }
+
+    function animateDvd() {
+      if (dvdLogo.style.display !== 'none') {
+        const maxX = window.innerWidth - dvdLogo.offsetWidth;
+        const maxY = window.innerHeight - dvdLogo.offsetHeight;
+
+        dvdX += dvdVx;
+        dvdY += dvdVy;
+
+        let hitEdge = false;
+        if (dvdX <= 0) { dvdX = 0; dvdVx = Math.abs(dvdVx); hitEdge = true; }
+        if (dvdX >= maxX) { dvdX = maxX; dvdVx = -Math.abs(dvdVx); hitEdge = true; }
+        if (dvdY <= 0) { dvdY = 0; dvdVy = Math.abs(dvdVy); hitEdge = true; }
+        if (dvdY >= maxY) { dvdY = maxY; dvdVy = -Math.abs(dvdVy); hitEdge = true; }
+
+        if (hitEdge) changeDvdColor();
+
+        dvdLogo.style.left = dvdX + 'px';
+        dvdLogo.style.top = dvdY + 'px';
+      }
+      requestAnimationFrame(animateDvd);
+    }
+    requestAnimationFrame(animateDvd);
+
+    function toggleDvd() {
+      dvdLogo.style.display = dvdLogo.style.display === 'none' ? 'block' : 'none';
+    }
 
     const fitModes = [
       { mode: 'contain', label: 'Screen: Fit (Bars)' },
@@ -205,6 +282,7 @@
 
     fitBtn.onclick = cycleFit;
     muteBtn.onclick = toggleMute;
+    document.getElementById('dvdBtn').onclick = toggleDvd;
     document.getElementById('fullscreenBtn').onclick = toggleFullscreen;
     document.getElementById('hideBtn').onclick = toggleMenu;
 
@@ -221,6 +299,7 @@
       if (key === 'h') toggleMenu();
       if (key === 'm') toggleMute();
       if (key === 's') cycleFit();
+      if (key === 'd') toggleDvd();
     });
 
     async function loadDevices() {
@@ -260,37 +339,3 @@
       const fps = parseInt(fpsSelect.value, 10);
       let videoConstraints = { frameRate: { ideal: fps } };
 
-      if (videoSelect.value) videoConstraints.deviceId = { exact: videoSelect.value };
-      if (res === '1080') {
-        videoConstraints.width = { ideal: 1920 };
-        videoConstraints.height = { ideal: 1080 };
-      } else if (res === '720') {
-        videoConstraints.width = { ideal: 1280 };
-        videoConstraints.height = { ideal: 720 };
-      }
-
-      try {
-        const constraints = {
-          video: videoConstraints,
-          audio: audioSelect.value ? { deviceId: { exact: audioSelect.value }, echoCancellation: false, noiseSuppression: false, autoGainControl: false } : false
-        };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = stream;
-        await video.play();
-
-        const track = stream.getVideoTracks();
-        const settings = track.getSettings();
-        statusText.textContent = `LIVE: ${settings.width || '?'}X${settings.height || '?'} @ ${Math.round(settings.frameRate || fps)}FPS`;
-      } catch (err) {
-        statusText.textContent = "STREAM ERROR: " + err.message.toUpperCase();
-      }
-    }
-
-    document.getElementById('startBtn').onclick = loadDevices;
-    videoSelect.onchange = startStream;
-    audioSelect.onchange = startStream;
-    resSelect.onchange = startStream;
-    fpsSelect.onchange = startStream;
-  </script>
-</body>
-</html>
