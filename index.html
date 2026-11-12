@@ -2,32 +2,158 @@
 <html>
 <head>
   <title>HDMI Monitor Pro</title>
+  <link rel="preconnect" href="https://googleapis.com">
+  <link rel="preconnect" href="https://gstatic.com" crossorigin>
+  <link href="https://googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@500;700&display=swap" rel="stylesheet">
   <style>
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: #fff; user-select: none; }
-    video { width: 100vw; height: 100vh; object-fit: contain; background: #000; display: block; }
-    #controls { position: fixed; top: 12px; left: 12px; right: 12px; max-width: 960px; z-index: 10; background: rgba(18, 18, 18, 0.92); padding: 12px 14px; border-radius: 10px; border: 1px solid #444; box-shadow: 0 4px 16px rgba(0,0,0,0.6); }
-    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .row:last-child { margin-bottom: 0; }
-    select, button { padding: 6px 10px; border-radius: 5px; border: none; font-size: 13px; cursor: pointer; background: #2c2c2c; color: #fff; border: 1px solid #555; }
-    button { background: #1a73e8; border-color: #1a73e8; font-weight: bold; }
-    button:hover { background: #1557b0; }
-    button.secondary { background: #333; border-color: #555; }
-    button.secondary:hover { background: #444; }
-    button.muted { background: #d93025; border-color: #d93025; }
-    .slider-group { display: flex; align-items: center; gap: 6px; background: #262626; padding: 4px 10px; border-radius: 5px; border: 1px solid #444; font-size: 13px; }
-    input[type="range"] { width: 90px; cursor: pointer; }
-    #status { font-size: 12px; color: #8ab4f8; margin-left: auto; }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, #140826 0%, #05020a 100%);
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      color: #fff;
+      user-select: none;
+    }
+
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      background: transparent;
+      display: block;
+    }
+
+    #controls {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      max-width: 1020px;
+      z-index: 10;
+      background: rgba(16, 12, 32, 0.88);
+      backdrop-filter: blur(12px);
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: 2px solid #9d4edd;
+      box-shadow: 0 0 25px rgba(157, 78, 221, 0.45), inset 0 0 12px rgba(0, 245, 212, 0.15);
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(157, 78, 221, 0.35);
+    }
+
+    .neon-banner {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 22px;
+      letter-spacing: 2px;
+      background: linear-gradient(90deg, #ff007f, #ffbe0b, #00f5d4, #9d4edd);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 18px rgba(255, 0, 127, 0.55);
+      animation: shine 4s linear infinite;
+    }
+
+    @keyframes shine {
+      to { background-position: 200% center; }
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .row:last-child {
+      margin-bottom: 0;
+    }
+
+    select, button {
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(36, 28, 66, 0.95);
+      color: #f8f9fa;
+      border: 1px solid #7b2cbf;
+      transition: all 0.2s ease;
+    }
+
+    select:hover, button:hover {
+      border-color: #00f5d4;
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.4);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #ff007f, #7b2cbf);
+      border: none;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(255, 0, 127, 0.5);
+    }
+
+    button.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 20px rgba(255, 0, 127, 0.8);
+    }
+
+    button.muted {
+      background: linear-gradient(135deg, #d90429, #8d0801);
+      border-color: #ff4d6d;
+      box-shadow: 0 0 12px rgba(217, 4, 41, 0.6);
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(36, 28, 66, 0.95);
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid #7b2cbf;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      width: 90px;
+      accent-color: #00f5d4;
+      cursor: pointer;
+    }
+
+    #status {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      color: #00f5d4;
+      text-shadow: 0 0 8px rgba(0, 245, 212, 0.5);
+      margin-left: auto;
+    }
   </style>
 </head>
 <body>
   <div id="controls">
+    <div class="header-bar">
+      <div class="neon-banner">⚡ NERDZAP SUCKS! ⚡</div>
+      <div id="status">READY TO CONNECT</div>
+    </div>
     <div class="row">
-      <button id="startBtn">1. Start / Load Devices</button>
+      <button id="startBtn" class="primary">1. Start / Load Devices</button>
       <select id="videoSource" title="Video Capture Device"><option value="">Select Video...</option></select>
       <select id="audioSource" title="Audio Capture Device"><option value="">Select Audio...</option></select>
       <select id="resSelect" title="Resolution">
         <option value="1080" selected>1080p (Full HD)</option>
-        <option value="720">720p (Fast / Low Lag)</option>
+        <option value="720">720p (Low Lag)</option>
         <option value="auto">Auto Resolution</option>
       </select>
       <select id="fpsSelect" title="Frame Rate">
@@ -36,16 +162,15 @@
       </select>
     </div>
     <div class="row">
-      <button id="muteBtn" class="secondary">🔊 Unmuted</button>
+      <button id="muteBtn">🔊 Unmuted</button>
       <div class="slider-group">
         <span>Vol:</span>
         <input type="range" id="volSlider" min="0" max="1" step="0.05" value="1">
         <span id="volLabel">100%</span>
       </div>
-      <button id="fitBtn" class="secondary">Screen: Fit (Bars)</button>
-      <button id="fullscreenBtn" class="secondary">Fullscreen (F)</button>
-      <button id="hideBtn" class="secondary">Hide Menu (H)</button>
-      <div id="status">Click "1. Start / Load Devices" to begin.</div>
+      <button id="fitBtn">Screen: Fit (Bars)</button>
+      <button id="fullscreenBtn">Fullscreen (F)</button>
+      <button id="hideBtn">Hide Menu (H)</button>
     </div>
   </div>
   <video id="video" autoplay playsinline></video>
@@ -115,7 +240,7 @@
     });
 
     async function loadDevices() {
-      statusText.textContent = "Requesting permissions...";
+      statusText.textContent = "REQUESTING PERMISSIONS...";
       try {
         const tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         tempStream.getTracks().forEach(track => track.stop());
@@ -140,7 +265,7 @@
 
         await startStream();
       } catch (err) {
-        statusText.textContent = "Error: " + err.message;
+        statusText.textContent = "ERROR: " + err.message.toUpperCase();
       }
     }
 
@@ -171,9 +296,9 @@
 
         const track = stream.getVideoTracks()[0];
         const settings = track.getSettings();
-        statusText.textContent = `Live: ${settings.width || '?'}x${settings.height || '?'} @ ${Math.round(settings.frameRate || fps)}fps`;
+        statusText.textContent = `LIVE: ${settings.width || '?'}X${settings.height || '?'} @ ${Math.round(settings.frameRate || fps)}FPS`;
       } catch (err) {
-        statusText.textContent = "Stream Error: " + err.message;
+        statusText.textContent = "STREAM ERROR: " + err.message.toUpperCase();
       }
     }
 
