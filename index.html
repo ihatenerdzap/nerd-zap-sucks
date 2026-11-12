@@ -11,7 +11,7 @@
       padding: 0;
       width: 100%;
       height: 100%;
-      background: radial-gradient(circle at center, #140826 0%, #05020a 100%);
+      background: #000;
       overflow: hidden;
       font-family: 'Inter', sans-serif;
       color: #fff;
@@ -22,7 +22,7 @@
       width: 100vw;
       height: 100vh;
       object-fit: contain;
-      background: transparent;
+      background: #000;
       display: block;
     }
 
@@ -33,12 +33,10 @@
       right: 14px;
       max-width: 1020px;
       z-index: 10;
-      background: rgba(16, 12, 32, 0.88);
-      backdrop-filter: blur(12px);
+      background: #1f0a17;
       padding: 14px 18px;
-      border-radius: 14px;
-      border: 2px solid #9d4edd;
-      box-shadow: 0 0 25px rgba(157, 78, 221, 0.45), inset 0 0 12px rgba(0, 245, 212, 0.15);
+      border-radius: 12px;
+      border: 2px solid #ff2a85;
     }
 
     .header-bar {
@@ -47,24 +45,15 @@
       align-items: center;
       margin-bottom: 12px;
       padding-bottom: 8px;
-      border-bottom: 1px solid rgba(157, 78, 221, 0.35);
+      border-bottom: 1px solid #ff2a85;
     }
 
-    .neon-banner {
+    .pink-banner {
       font-family: 'Orbitron', sans-serif;
       font-weight: 900;
       font-size: 22px;
       letter-spacing: 2px;
-      background: linear-gradient(90deg, #ff007f, #ffbe0b, #00f5d4, #9d4edd);
-      background-size: 200% auto;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 18px rgba(255, 0, 127, 0.55);
-      animation: shine 4s linear infinite;
-    }
-
-    @keyframes shine {
-      to { background-position: 200% center; }
+      color: #ff2a85;
     }
 
     .row {
@@ -85,58 +74,53 @@
       font-size: 13px;
       font-weight: 700;
       cursor: pointer;
-      background: rgba(36, 28, 66, 0.95);
-      color: #f8f9fa;
-      border: 1px solid #7b2cbf;
-      transition: all 0.2s ease;
+      background: #331126;
+      color: #fff;
+      border: 1px solid #ff2a85;
+      transition: background 0.15s ease;
     }
 
     select:hover, button:hover {
-      border-color: #00f5d4;
-      box-shadow: 0 0 10px rgba(0, 245, 212, 0.4);
+      background: #4d1939;
     }
 
     button.primary {
-      background: linear-gradient(135deg, #ff007f, #7b2cbf);
-      border: none;
+      background: #ff2a85;
+      border: 1px solid #ff2a85;
       color: #fff;
-      box-shadow: 0 0 14px rgba(255, 0, 127, 0.5);
     }
 
     button.primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 0 20px rgba(255, 0, 127, 0.8);
+      background: #e01e72;
     }
 
     button.muted {
-      background: linear-gradient(135deg, #d90429, #8d0801);
-      border-color: #ff4d6d;
-      box-shadow: 0 0 12px rgba(217, 4, 41, 0.6);
+      background: #b80d3a;
+      border-color: #ff5c8a;
     }
 
     .slider-group {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(36, 28, 66, 0.95);
+      background: #331126;
       padding: 5px 12px;
       border-radius: 8px;
-      border: 1px solid #7b2cbf;
+      border: 1px solid #ff2a85;
       font-size: 13px;
       font-weight: 700;
     }
 
     input[type="range"] {
       width: 90px;
-      accent-color: #00f5d4;
+      accent-color: #ff2a85;
       cursor: pointer;
     }
 
     #status {
       font-family: 'Orbitron', sans-serif;
       font-size: 11px;
-      color: #00f5d4;
-      text-shadow: 0 0 8px rgba(0, 245, 212, 0.5);
+      color: #ff85b8;
       margin-left: auto;
     }
   </style>
@@ -144,7 +128,7 @@
 <body>
   <div id="controls">
     <div class="header-bar">
-      <div class="neon-banner">⚡ NERDZAP SUCKS! ⚡</div>
+      <div class="pink-banner">NERDZAP SUCKS!</div>
       <div id="status">READY TO CONNECT</div>
     </div>
     <div class="row">
@@ -294,7 +278,7 @@
         video.srcObject = stream;
         await video.play();
 
-        const track = stream.getVideoTracks()[0];
+        const track = stream.getVideoTracks();
         const settings = track.getSettings();
         statusText.textContent = `LIVE: ${settings.width || '?'}X${settings.height || '?'} @ ${Math.round(settings.frameRate || fps)}FPS`;
       } catch (err) {
