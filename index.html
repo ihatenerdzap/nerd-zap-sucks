@@ -112,6 +112,17 @@
       border-color: #ff7597;
     }
 
+    button.recording {
+      background: #d90429;
+      border-color: #fff;
+      animation: pulseRec 1s infinite;
+    }
+
+    @keyframes pulseRec {
+      0%, 100% { background: #d90429; }
+      50% { background: #7a0016; }
+    }
+
     .slider-group {
       display: flex;
       align-items: center;
@@ -125,7 +136,7 @@
     }
 
     /* Pixel-style Range Slider */
-    input[type="range"] {
+    input.pixel-slider {
       -webkit-appearance: none;
       appearance: none;
       width: 90px;
@@ -135,7 +146,7 @@
       cursor: pointer;
     }
 
-    input[type="range"]::-webkit-slider-thumb {
+    input.pixel-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
       width: 14px;
@@ -150,6 +161,40 @@
       color: #ff99c5;
       text-shadow: 2px 2px 0px #000;
       margin-left: auto;
+    }
+
+    /* Rewind / Replay RPG Modal */
+    #replayModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.88);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .replay-box {
+      width: 100%;
+      max-width: 960px;
+      background: #1a0714;
+      border: 4px solid #fff;
+      outline: 4px solid #ff2a85;
+      box-shadow: 0 0 0 8px #000;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #replayVideo {
+      width: 100%;
+      height: auto;
+      max-height: 70vh;
+      background: #000;
+      border: 3px solid #ff2a85;
     }
   </style>
 </head>
@@ -177,18 +222,36 @@
       <button id="muteBtn">SND: ON</button>
       <div class="slider-group">
         <span>VOL:</span>
-        <input type="range" id="volSlider" min="0" max="1" step="0.05" value="1">
+        <input type="range" class="pixel-slider" id="volSlider" min="0" max="1" step="0.05" value="1">
         <span id="volLabel">100%</span>
       </div>
       <button id="fitBtn">FIT: BARS</button>
-      <button id="fullscreenBtn">FULL [F]</button>
-      <button id="hideBtn">HIDE [H]</button>
+      <button id="recBtn">● REC (R)</button>
+      <button id="rewindBtn">◀◀ REWIND (B)</button>
+      <button id="fullscreenBtn">FULL (F)</button>
+      <button id="hideBtn">HIDE (H)</button>
     </div>
   </div>
+
+  <!-- Instant Replay / Rewind Overlay -->
+  <div id="replayModal">
+    <div class="replay-box">
+      <div class="header-bar" style="margin-bottom: 0;">
+        <div class="pink-banner">◀◀ TIME REWIND (LAST ~30S)</div>
+        <div style="display: flex; gap: 10px;">
+          <button id="saveClipBtn" class="primary">💾 SAVE CLIP</button>
+          <button id="closeReplayBtn">✖ BACK TO LIVE</button>
+        </div>
+      </div>
+      <video id="replayVideo" controls autoplay loop></video>
+    </div>
+  </div>
+
   <video id="video" autoplay playsinline></video>
 
   <script>
     const video = document.getElementById('video');
+    const startBtn = document.getElementById('startBtn');
     const videoSelect = document.getElementById('videoSource');
     const audioSelect = document.getElementById('audioSource');
     const resSelect = document.getElementById('resSelect');
@@ -199,18 +262,25 @@
     const controls = document.getElementById('controls');
     const statusText = document.getElementById('status');
     const fitBtn = document.getElementById('fitBtn');
+    const recBtn = document.getElementById('recBtn');
+    const rewindBtn = document.getElementById('rewindBtn');
+    const replayModal = document.getElementById('replayModal');
+    const replayVideo = document.getElementById('replayVideo');
+    const saveClipBtn = document.getElementById('saveClipBtn');
+    const closeReplayBtn = document.getElementById('closeReplayBtn');
 
-    const fitModes = [
+    const fitModes = new Array(
       { mode: 'contain', label: 'FIT: BARS' },
       { mode: 'cover', label: 'FIT: CROP' },
       { mode: 'fill', label: 'FIT: FULL' }
-    ];
+    );
     let currentFit = 0;
 
     function cycleFit() {
       currentFit = (currentFit + 1) % fitModes.length;
-      video.style.objectFit = fitModes[currentFit].mode;
-      fitBtn.textContent = fitModes[currentFit].label;
+      const modeObj = fitModes.at(currentFit);
+      video.style.objectFit = modeObj.mode;
+      fitBtn.textContent = modeObj.label;
     }
 
     function toggleMute() {
@@ -245,10 +315,13 @@
     document.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'SELECT') return;
       const key = e.key.toLowerCase();
+      if (key === 'escape' && replayModal.style.display === 'flex') closeRewind();
       if (key === 'f') toggleFullscreen();
       if (key === 'h') toggleMenu();
       if (key === 'm') toggleMute();
       if (key === 's') cycleFit();
+      if (key === 'r') toggleRecording();
+      if (key === 'b') replayModal.style.display === 'flex' ? closeRewind() : openRewind();
     });
 
     async function loadDevices() {
@@ -270,57 +343,187 @@
           option.text = device.label || `${device.kind}`;
           if (device.kind === 'videoinput') videoSelect.appendChild(option);
           if (device.kind === 'audioinput') audioSelect.appendChild(option);
-        });
-
-        if (savedVideo) videoSelect.value = savedVideo;
-        if (savedAudio) audioSelect.value = savedAudio;
-
-        await startStream();
-      } catch (err) {
-        statusText.textContent = "ERR: " + err.message.toUpperCase();
-      }
-    }
-
-    async function startStream() {
-      if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
-      
-      const res = resSelect.value;
-      const fps = parseInt(fpsSelect.value, 10);
-      let videoConstraints = { frameRate: { ideal: fps } };
-
-      if (videoSelect.value) videoConstraints.deviceId = { exact: videoSelect.value };
-      if (res === '1080') {
-        videoConstraints.width = { ideal: 1920 };
-        videoConstraints.height = { ideal: 1080 };
-      } else if (res === '720') {
-        videoConstraints.width = { ideal: 1280 };
-        videoConstraints.height = { ideal: 720 };
-      }
-
-      try {
-        const constraints = {
-          video: videoConstraints,
-          audio: audioSelect.value ? { deviceId: { exact: audioSelect.value }, echoCancellation: false, noiseSuppression: false, autoGainControl: false } : false
-        };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = stream;
-        await video.play();
-
-        const track = stream.getVideoTracks();
-        const settings = track.getSettings();
-        statusText.textContent = `settings.width||'?'X{settings.height || '?'} ${Math.round(settings.frameRate || fps)}FPS`;
-      } catch (err) {
-        statusText.textContent = "ERR: " + err.message.toUpperCase();
-      }
-    }
-
-    document.getElementById('startBtn').onclick = loadDevices;
-    videoSelect.onchange = startStream;
-    audioSelect.onchange = startStream;
-    resSelect.onchange = startStream;
-    fpsSelect.onchange = startStream;
-  </script>
-</body>
-</html>
-
-
+});
+if (savedVideo) videoSelect.value = savedVideo;
+if (savedAudio) audioSelect.value = savedAudio;
+await startStream();
+} catch (err) {
+statusText.textContent = "ERR: " + err.message.toUpperCase();
+}
+}
+async function startStream() {
+if (isRecording) toggleRecording();
+if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+const res = resSelect.value;
+const fps = parseInt(fpsSelect.value, 10);
+let videoConstraints = {
+deviceId: videoSelect.value ? { exact: videoSelect.value } : undefined,
+frameRate: { ideal: fps }
+};
+if (res === '1080') {
+videoConstraints.width = { ideal: 1920 };
+videoConstraints.height = { ideal: 1080 };
+} else if (res === '720') {
+videoConstraints.width = { ideal: 1280 };
+videoConstraints.height = { ideal: 720 };
+}
+const audioConstraints = {
+deviceId: audioSelect.value ? { exact: audioSelect.value } : undefined,
+echoCancellation: false,
+noiseSuppression: false,
+autoGainControl: false
+};
+try {
+const stream = await navigator.mediaDevices.getUserMedia({
+video: videoConstraints,
+audio: audioConstraints
+});
+video.srcObject = stream;
+const track = stream.getVideoTracks().at(0);
+if (track) {
+const settings = track.getSettings();
+statusText.textContent = HP: ${settings.width || '?'}X${settings.height || '?'} @ ${Math.round(settings.frameRate || fps)}FPS;
+} else {
+statusText.textContent = "HP: LIVE";
+}
+} catch (err) {
+statusText.textContent = "ERR: " + err.message.toUpperCase();
+}
+}
+startBtn.onclick = loadDevices;
+videoSelect.onchange = startStream;
+audioSelect.onchange = startStream;
+resSelect.onchange = startStream;
+fpsSelect.onchange = startStream;
+/* Recording & 30-Second Rewind Engine */
+let mediaRecorder = null;
+let recordedChunks = new Array();
+let isRecording = false;
+let recTimerInterval = null;
+let recSeconds = 0;
+let bufferRecorder = null;
+let bufferHeader = null;
+let bufferChunks = new Array();
+let currentReplayUrl = null;
+let lastStreamId = null;
+const MAX_BUFFER_CHUNKS = 30;
+function getSupportedMimeType() {
+if (typeof MediaRecorder === 'undefined') return '';
+const types = new Array('video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm');
+return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+}
+function toggleRecording() {
+if (!video.srcObject) {
+statusText.textContent = "ERR: PRESS START FIRST";
+return;
+}
+if (!isRecording) {
+recordedChunks = new Array();
+const mimeType = getSupportedMimeType();
+mediaRecorder = new MediaRecorder(video.srcObject, mimeType ? { mimeType } : {});
+mediaRecorder.ondataavailable = (e) => {
+if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+};
+mediaRecorder.onstop = () => {
+const blob = new Blob(recordedChunks, { type: mimeType || 'video/webm' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+a.href = url;
+a.download = hdmi-rec-${timestamp}.webm;
+a.click();
+setTimeout(() => URL.revokeObjectURL(url), 5000);
+statusText.textContent = "SAVED RECORDING!";
+};
+mediaRecorder.start(1000);
+isRecording = true;
+recSeconds = 0;
+recBtn.classList.add('recording');
+recBtn.textContent = "■ STOP 00:00";
+recTimerInterval = setInterval(() => {
+recSeconds++;
+const mins = String(Math.floor(recSeconds / 60)).padStart(2, '0');
+const secs = String(recSeconds % 60).padStart(2, '0');
+recBtn.textContent = ■ STOP ${mins}:${secs};
+}, 1000);
+} else {
+mediaRecorder.stop();
+isRecording = false;
+clearInterval(recTimerInterval);
+recBtn.classList.remove('recording');
+recBtn.textContent = "● REC (R)";
+}
+}
+function initRewindBuffer(stream) {
+try {
+if (bufferRecorder && bufferRecorder.state !== 'inactive') {
+bufferRecorder.stop();
+}
+bufferHeader = null;
+bufferChunks = new Array();
+const mimeType = getSupportedMimeType();
+bufferRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+bufferRecorder.ondataavailable = (e) => {
+if (!e.data || e.data.size === 0) return;
+if (!bufferHeader) {
+bufferHeader = e.data;
+} else {
+bufferChunks.push(e.data);
+if (bufferChunks.length > MAX_BUFFER_CHUNKS) {
+bufferChunks.shift();
+}
+}
+};
+bufferRecorder.start(1000);
+} catch (e) {
+console.warn('Rewind buffer skipped:', e);
+}
+}
+video.addEventListener('playing', () => {
+if (video.srcObject && video.srcObject.id !== lastStreamId) {
+lastStreamId = video.srcObject.id;
+initRewindBuffer(video.srcObject);
+}
+});
+function openRewind() {
+if (!bufferHeader || bufferChunks.length === 0) {
+statusText.textContent = "REWIND BUFFERING...";
+return;
+}
+if (currentReplayUrl) URL.revokeObjectURL(currentReplayUrl);
+const mimeType = getSupportedMimeType() || 'video/webm';
+const allParts = new Array(bufferHeader).concat(bufferChunks);
+const replayBlob = new Blob(allParts, { type: mimeType });
+currentReplayUrl = URL.createObjectURL(replayBlob);
+if (!video.muted) {
+video.dataset.wasUnmuted = "true";
+toggleMute();
+}
+replayVideo.src = currentReplayUrl;
+replayModal.style.display = 'flex';
+replayVideo.onloadedmetadata = () => {
+if (replayVideo.duration > 5 && isFinite(replayVideo.duration)) {
+replayVideo.currentTime = Math.max(0, replayVideo.duration - 10);
+}
+};
+}
+function closeRewind() {
+replayVideo.pause();
+replayModal.style.display = 'none';
+if (video.dataset.wasUnmuted === "true") {
+delete video.dataset.wasUnmuted;
+if (video.muted) toggleMute();
+}
+}
+saveClipBtn.onclick = () => {
+if (!currentReplayUrl) return;
+const a = document.createElement('a');
+const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+a.href = currentReplayUrl;
+a.download = hdmi-rewind-${timestamp}.webm;
+a.click();
+statusText.textContent = "SAVED REWIND CLIP!";
+};
+closeReplayBtn.onclick = closeRewind;
+recBtn.onclick = toggleRecording;
+rewindBtn.onclick = openRewind;
