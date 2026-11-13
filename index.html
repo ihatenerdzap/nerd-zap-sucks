@@ -288,7 +288,7 @@
     let bufferHeader = null;
     let bufferChunks = [];
     let currentReplayUrl = null;
-    const MAX_BUFFER_CHUNKS = 30; // ~30 seconds (1 chunk per second)
+    const MAX_BUFFER_CHUNKS = 30;
 
     function cycleFit() {
       currentFit = (currentFit + 1) % fitModes.length;
@@ -315,6 +315,7 @@
     }
 
     function getSupportedMimeType() {
+      if (typeof MediaRecorder === 'undefined') return '';
       const types = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
       return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
     }
